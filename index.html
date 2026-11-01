@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Pulse3D &bull; Kinetic Fitness Activity Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <!-- Three.js + OrbitControls + Canvas Confetti -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+</head>
+<body>
+  <!-- 3D Canvas Mount -->
+  <div id="webgl-container"></div>
+
+  <!-- Ambient Vignette & Scanline FX -->
+  <div class="screen-fx"></div>
+
+  <!-- Minimal Glassmorphic HUD -->
+  <header class="top-nav">
+    <div class="brand">
+      <div class="brand-glyph">
+        <span class="core-dot"></span>
+        <svg viewBox="0 0 24 24" class="svg-icon pulse-svg">
+          <path d="M22 12h-4l-3 9L9 3l-3 9H2" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <span class="app-name">PULSE<span class="highlight">3D</span></span>
+        <span class="app-sub">ACTIVITY DYNAMICS</span>
+      </div>
+    </div>
+
+    <!-- Weekly Macro Glance (Low Text, Rich Visual Glyphs) -->
+    <div class="macro-hud">
+      <div class="metric-chip chip-cal" title="Weekly Active Calories">
+        <svg viewBox="0 0 24 24" class="chip-icon">
+          <path d="M12 2c.5 3.5 4 5.5 4 9a6 6 0 0 1-12 0c0-3.5 3.5-5.5 4-9 1 2 2 3 4 0z" fill="currentColor"/>
+        </svg>
+        <span class="chip-val" id="hud-total-cal">0</span>
+        <span class="chip-unit">kcal</span>
+      </div>
+
+      <div class="metric-chip chip-step" title="Weekly Steps">
+        <svg viewBox="0 0 24 24" class="chip-icon">
+          <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" fill="none" stroke="currentColor" stroke-width="2"/>
+        </svg>
+        <span class="chip-val" id="hud-total-steps">0</span>
+        <span class="chip-unit">steps</span>
+      </div>
+
+      <div class="metric-chip chip-time" title="Weekly Active Minutes">
+        <svg viewBox="0 0 24 24" class="chip-icon">
+          <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/>
+          <path d="M12 7v5l3 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <span class="chip-val" id="hud-total-time">0</span>
+        <span class="chip-unit">min</span>
+      </div>
+
+      <!-- Trend Momentum Pill -->
+      <div class="trend-pill" id="hud-trend-pill" title="Weekly Momentum vs Previous Period">
+        <span class="trend-arrow" id="trend-arrow">▲</span>
+        <span class="trend-pct" id="hud-trend-pct">+14%</span>
+        <span class="trend-sparkle">★</span>
+      </div>
+    </div>
+
+    <!-- Quick Action Bar -->
+    <div class="nav-actions">
+      <button id="btn-sound-toggle" class="icon-btn" title="Toggle Synthesized Audio Feedback">
+        <svg id="sound-icon-on" viewBox="0 0 24 24" class="svg-icon">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M15.54 8.46a5 5 0 0 1 0 7.07" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <svg id="sound-icon-off" viewBox="0 0 24 24" class="svg-icon hidden">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <line x1="23" y1="9" x2="17" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <line x1="17" y1="9" x2="23" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </button>
+
+      <button id="btn-theme" class="icon-btn" title="Cycle Neon Color Palettes">
+        <svg viewBox="0 0 24 24" class="svg-icon">
+          <circle cx="12" cy="12" r="4" fill="currentColor"/>
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </button>
+
+      <button id="btn-open-log" class="primary-btn glow-pulse" title="Record New Activity">
+        <svg viewBox="0 0 24 24" class="svg-icon">
+          <line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+        <span>LOG</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Left Float: 3D Visualization Mode Selector -->
+  <aside class="view-mode-bar">
+    <button class="mode-btn active" data-mode="rings" title="3D Kinetic Rings View">
+      <svg viewBox="0 0 24 24" class="mode-svg">
+        <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/>
+        <circle cx="12" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2"/>
+        <circle cx="12" cy="12" r="2" fill="currentColor"/>
+      </svg>
+    </button>
+    <button class="mode-btn" data-mode="pillars" title="3D Weekly Towers View">
+      <svg viewBox="0 0 24 24" class="mode-svg">
+        <rect x="3" y="10" width="4" height="11" rx="1" fill="none" stroke="currentColor" stroke-width="2"/>
+        <rect x="10" y="5" width="4" height="16" rx="1" fill="none" stroke="currentColor" stroke-width="2"/>
+        <rect x="17" y="2" width="4" height="19" rx="1" fill="currentColor"/>
+      </svg>
+    </button>
+    <button class="mode-btn" data-mode="spline" title="3D Kinetic Trend Flow">
+      <svg viewBox="0 0 24 24" class="mode-svg">
+        <path d="M3 17l5-5 4 4 9-9" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="21" cy="7" r="2" fill="currentColor"/>
+      </svg>
+    </button>
+
+    <div class="mode-divider"></div>
+
+    <button id="btn-reset-cam" class="mode-btn" title="Reset Camera Perspective">
+      <svg viewBox="0 0 24 24" class="mode-svg">
+        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <path d="M3 3v5h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+  </aside>
+
+  <!-- Bottom Timeline & Day Scrubber (Interactive Mon-Sun) -->
+  <nav class="bottom-scrubber">
+    <div class="scrubber-days" id="scrubber-days-list">
+      <!-- Injected by JS: 7 interactive day chips with mini ring status -->
+    </div>
+  </nav>
+
+  <!-- 3D Raycast Tooltip / Hover Badge (Floating 3D HUD) -->
+  <div id="float-tooltip" class="float-tooltip hidden">
+    <div class="tooltip-header">
+      <span class="tooltip-day" id="tip-day-label">TODAY</span>
+      <span class="tooltip-badge" id="tip-goal-badge">100% GOAL</span>
+    </div>
+    <div class="tooltip-grid">
+      <div class="tip-row cal-row">
+        <span class="tip-glyph">🔥</span>
+        <span class="tip-metric" id="tip-cal">0</span>
+        <span class="tip-sub">kcal</span>
+      </div>
+      <div class="tip-row step-row">
+        <span class="tip-glyph">👟</span>
+        <span class="tip-metric" id="tip-step">0</span>
+        <span class="tip-sub">steps</span>
+      </div>
+      <div class="tip-row time-row">
+        <span class="tip-glyph">⏱️</span>
+        <span class="tip-metric" id="tip-time">0</span>
+        <span class="tip-sub">min</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Focused Day Detail Drawer (Right Side, Collapsible) -->
+  <aside id="day-detail-drawer" class="detail-drawer">
+    <button id="btn-close-drawer" class="drawer-close-btn" title="Close">✕</button>
+    
+    <div class="drawer-header">
+      <div class="drawer-day-title" id="drawer-day-title">MONDAY</div>
+      <div class="drawer-ring-score">
+        <span class="score-num" id="drawer-score-pct">92</span><span class="score-pct">%</span>
+        <span class="score-lbl">GOAL MET</span>
+      </div>
+    </div>
+
+    <!-- 3 Mini Ring Indicators -->
+    <div class="drawer-bars">
+      <div class="drawer-stat">
+        <div class="stat-top">
+          <span class="stat-name color-cal">🔥 ACTIVE CALORIES</span>
+          <span class="stat-val" id="drawer-val-cal">650 / 600 kcal</span>
+        </div>
+        <div class="stat-progress-track">
+          <div class="stat-progress-bar bar-cal" id="drawer-bar-cal" style="width: 100%;"></div>
+        </div>
+      </div>
+
+      <div class="drawer-stat">
+        <div class="stat-top">
+          <span class="stat-name color-step">👟 STEPS</span>
+          <span class="stat-val" id="drawer-val-step">10,240 / 10,000</span>
+        </div>
+        <div class="stat-progress-track">
+          <div class="stat-progress-bar bar-step" id="drawer-bar-step" style="width: 100%;"></div>
+        </div>
+      </div>
+
+      <div class="drawer-stat">
+        <div class="stat-top">
+          <span class="stat-name color-time">⏱️ EXERCISE TIME</span>
+          <span class="stat-val" id="drawer-val-time">48 / 45 min</span>
+        </div>
+        <div class="stat-progress-track">
+          <div class="stat-progress-bar bar-time" id="drawer-bar-time" style="width: 100%;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Activity Log for Selected Day -->
+    <div class="drawer-activity-section">
+      <div class="section-title-row">
+        <span class="section-title">LOGGED SESSIONS</span>
+        <button id="btn-quick-add-to-day" class="tiny-add-btn">+ ADD</button>
+      </div>
+      <div class="activity-items-list" id="drawer-activity-items">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+
+    <!-- Drawer Footer Actions -->
+    <div class="drawer-footer">
+      <button id="btn-clear-day" class="danger-btn-outline" title="Clear all recorded data for this day">Clear Day</button>
+    </div>
+  </aside>
+
+  <!-- Interactive Activity Logging Modal -->
+  <div id="log-modal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-top">
+        <div class="modal-title-group">
+          <h2 class="modal-heading">RECORD ACTIVITY</h2>
+          <p class="modal-sub">Dynamic Calorie Estimation & Kinetic 3D Sync</p>
+        </div>
+        <button id="btn-modal-close" class="modal-close-btn">&times;</button>
+      </div>
+
+      <form id="activity-form" onsubmit="return false;">
+        <!-- Day Selector Pills -->
+        <div class="form-row">
+          <label class="form-label">TARGET DAY</label>
+          <div class="day-picker-pills" id="modal-day-picker">
+            <button type="button" class="day-pill" data-day="0">MON</button>
+            <button type="button" class="day-pill" data-day="1">TUE</button>
+            <button type="button" class="day-pill" data-day="2">WED</button>
+            <button type="button" class="day-pill" data-day="3">THU</button>
+            <button type="button" class="day-pill" data-day="4">FRI</button>
+            <button type="button" class="day-pill" data-day="5">SAT</button>
+            <button type="button" class="day-pill" data-day="6">SUN</button>
+          </div>
+        </div>
+
+        <!-- Activity Preset Grid (Icon-heavy, low-text) -->
+        <div class="form-row">
+          <label class="form-label">ACTIVITY DISCIPLINE</label>
+          <div class="discipline-grid">
+            <button type="button" class="disc-btn active" data-type="running" data-met="9.8" data-steps-per-min="160">
+              <span class="disc-icon">🏃</span>
+              <span class="disc-label">Running</span>
+            </button>
+            <button type="button" class="disc-btn" data-type="cycling" data-met="7.5" data-steps-per-min="0">
+              <span class="disc-icon">🚴</span>
+              <span class="disc-label">Cycling</span>
+            </button>
+            <button type="button" class="disc-btn" data-type="walking" data-met="3.8" data-steps-per-min="110">
+              <span class="disc-icon">🚶</span>
+              <span class="disc-label">Walking</span>
+            </button>
+            <button type="button" class="disc-btn" data-type="swimming" data-met="8.0" data-steps-per-min="0">
+              <span class="disc-icon">🏊</span>
+              <span class="disc-label">Swimming</span>
+            </button>
+            <button type="button" class="disc-btn" data-type="hiit" data-met="10.5" data-steps-per-min="90">
+              <span class="disc-icon">⚡</span>
+              <span class="disc-label">HIIT</span>
+            </button>
+            <button type="button" class="disc-btn" data-type="strength" data-met="5.0" data-steps-per-min="30">
+              <span class="disc-icon">🏋️</span>
+              <span class="disc-label">Strength</span>
+            </button>
+            <button type="button" class="disc-btn" data-type="yoga" data-met="3.0" data-steps-per-min="15">
+              <span class="disc-icon">🧘</span>
+              <span class="disc-label">Yoga</span>
+            </button>
+            <button type="button" class="disc-btn" data-type="sports" data-met="8.5" data-steps-per-min="130">
+              <span class="disc-icon">⚽</span>
+              <span class="disc-label">Sports</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Interactive Sliders with Live Feedback -->
+        <div class="form-row">
+          <div class="slider-header">
+            <label class="form-label">EXERCISE DURATION</label>
+            <span class="slider-display" id="display-duration">30 <span class="dim">min</span></span>
+          </div>
+          <input type="range" id="input-duration" min="5" max="180" step="5" value="30" class="neon-range" />
+          <div class="quick-preset-chips">
+            <button type="button" class="preset-chip" onclick="setDuration(15)">15m</button>
+            <button type="button" class="preset-chip" onclick="setDuration(30)">30m</button>
+            <button type="button" class="preset-chip" onclick="setDuration(45)">45m</button>
+            <button type="button" class="preset-chip" onclick="setDuration(60)">60m</button>
+            <button type="button" class="preset-chip" onclick="setDuration(90)">90m</button>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="slider-header">
+            <label class="form-label">STEPS ADDED</label>
+            <span class="slider-display color-step" id="display-steps">4,800 <span class="dim">steps</span></span>
+          </div>
+          <input type="range" id="input-steps" min="0" max="25000" step="200" value="4800" class="neon-range range-step" />
+          <div class="quick-preset-chips">
+            <button type="button" class="preset-chip" onclick="setSteps(2000)">+2k</button>
+            <button type="button" class="preset-chip" onclick="setSteps(5000)">+5k</button>
+            <button type="button" class="preset-chip" onclick="setSteps(8000)">+8k</button>
+            <button type="button" class="preset-chip" onclick="setSteps(10000)">+10k</button>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label class="form-label">INTENSITY MULTIPLIER</label>
+          <div class="intensity-group">
+            <button type="button" class="intensity-btn" data-factor="0.8">Light</button>
+            <button type="button" class="intensity-btn active" data-factor="1.0">Normal</button>
+            <button type="button" class="intensity-btn" data-factor="1.25">Intense</button>
+            <button type="button" class="intensity-btn" data-factor="1.5">Max Beast</button>
+          </div>
+        </div>
+
+        <!-- Dynamic Calorie Estimation Gauge -->
+        <div class="estimate-callout">
+          <div class="est-left">
+            <span class="est-icon">🔥</span>
+            <div class="est-meta">
+              <span class="est-title">ESTIMATED EXPENDITURE</span>
+              <span class="est-formula" id="est-formula-text">MET 9.8 &bull; Normal Intensity &bull; 70kg Baseline</span>
+            </div>
+          </div>
+          <div class="est-right">
+            <span class="est-number" id="display-est-cal">343</span>
+            <span class="est-unit">kcal</span>
+          </div>
+        </div>
+
+        <!-- Submit & Trigger 3D Particle Flare -->
+        <div class="modal-actions">
+          <button type="button" id="btn-cancel-modal" class="secondary-btn">DISCARD</button>
+          <button type="submit" id="btn-save-activity" class="primary-btn glow-pulse">
+            <svg viewBox="0 0 24 24" class="svg-icon">
+              <polyline points="20 6 9 17 4 12" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            COMMIT TO PULSE
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Subtle Keyboard / Interaction Help Hint -->
+  <div class="interaction-hint">
+    <span>DRAG TO ROTATE &bull; SCROLL TO ZOOM &bull; CLICK ANY DAY FOR DETAILS</span>
+  </div>
+
+  <!-- Application Logic -->
+  <script src="app.js"></script>
+</body>
+</html>
