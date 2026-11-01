@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: pulse3d-fitness-tracker
+    runtime: static
+    buildCommand: echo "Static build complete"
+    staticPublishPath: .

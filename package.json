@@ -1,0 +1,12 @@
+{
+  "name": "pulse3d-fitness-tracker",
+  "version": "1.0.0",
+  "description": "Pulse3D Kinetic 3D Fitness Activity Tracker with Three.js",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx serve -s . -l ${PORT:-3000}"
+  },
+  "dependencies": {
+    "serve": "^14.2.3"
+  }
+}
